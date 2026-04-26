@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AC Freedom Web App</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0f1e;
+  --glass:rgba(255,255,255,0.06);
+  --glass-b:rgba(255,255,255,0.12);
+  --border:rgba(255,255,255,0.10);
+  --text:#e8eef7;
+  --sub:#8a9bb8;
+  --cool:#38bdf8;
+  --heat:#fb923c;
+  --auto:#a78bfa;
+  --dry:#34d399;
+  --fan:#94a3b8;
+  --accent:#38bdf8;
+  --on:#22c55e;
+  --off:#ef4444;
+}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--bg) url('bg.png') center/cover no-repeat fixed;
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+
+/* ── Header ── */
+header{
+  text-align:center;
+  margin-bottom:32px;
+}
+header h1{
+  font-size:1.6rem;
+  font-weight:600;
+  letter-spacing:0.04em;
+  background:linear-gradient(135deg,#38bdf8,#818cf8);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+header p{font-size:.85rem;color:var(--sub);margin-top:4px}
+
+/* ── Status pill ── */
+#status-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 16px;border-radius:999px;
+  font-size:.8rem;font-weight:500;
+  backdrop-filter:blur(12px);
+  border:1px solid var(--border);
+  margin-top:10px;
+  transition:all .3s;
+}
+#status-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--off);
+  box-shadow:0 0 6px var(--off);
+  transition:all .3s;
+}
+#status-pill.connected #status-dot{background:var(--on);box-shadow:0 0 8px var(--on)}
+#status-pill.connected{border-color:rgba(34,197,94,.3)}
+
+/* ── Main card ── */
+.card{
+  background:var(--glass);
+  backdrop-filter:blur(24px);
+  border:1px solid var(--border);
+  border-radius:28px;
+  padding:36px 40px;
+  width:100%;max-width:440px;
+  box-shadow:0 24px 80px rgba(0,0,0,.5);
+}
+
+@media (max-width: 480px) {
+  body { padding: 12px; }
+  body.logged-in { padding: 0; justify-content: flex-start; }
+  body.logged-in .card {
+    max-width: 100%;
+    border-radius: 0;
+    border: none;
+    min-height: 100vh;
+    padding: 12px 20px;
+  }
+  body.logged-in .power-wrap { margin-bottom: 20px; }
+}
+
+body.logged-in header { display: none; }
+
+/* ── Thermometer display ── */
+.thermo-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  margin-bottom:32px;
+}
+.thermo-label{font-size:.75rem;color:var(--sub);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+.thermo-ring{
+  position:relative;
+  width:180px;height:180px;
+}
+.thermo-ring svg{transform:rotate(-90deg)}
+.thermo-ring svg circle.bg{fill:none;stroke:rgba(255,255,255,.07);stroke-width:10}
+.thermo-ring svg circle.arc{
+  fill:none;stroke:var(--cool);stroke-width:10;
+  stroke-linecap:round;
+  stroke-dasharray:502;
+  stroke-dashoffset:502;
+  transition:stroke-dashoffset .5s ease, stroke .4s ease;
+}
+.thermo-center{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center;
+}
+.temp-value{font-size:3.4rem;font-weight:700;line-height:1;letter-spacing:-.02em}
+.temp-unit{font-size:.9rem;color:var(--sub);margin-top:2px}
+.temp-btns{
+  display:flex;gap:16px;margin-top:20px;
+}
+.temp-btn{
+  width:48px;height:48px;border-radius:50%;
+  border:1px solid var(--border);
+  background:var(--glass);
+  color:var(--text);
+  font-size:1.5rem;font-weight:300;
+  cursor:pointer;
+  transition:all .2s;
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(8px);
+}
+.temp-btn:hover{background:var(--glass-b);border-color:var(--accent);transform:scale(1.08)}
+.temp-btn:active{transform:scale(.95)}
+
+/* ── Power button ── */
+.power-wrap{display:flex;justify-content:center;margin-bottom:28px}
+#power-btn{
+  width:72px;height:72px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.05);
+  color:#8a9bb8;
+  cursor:pointer;
+  font-size:1.6rem;
+  transition:all .3s;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+#power-btn::after{
+  content:'';position:absolute;
+  inset:-4px;border-radius:50%;
+  border:2px solid transparent;
+  transition:all .3s;
+}
+#power-btn.on{
+  border-color:var(--on);
+  color:var(--on);
+  box-shadow:0 0 20px rgba(34,197,94,.35);
+}
+#power-btn.on::after{border-color:rgba(34,197,94,.25)}
+#power-btn:hover{transform:scale(1.06)}
+#power-btn:active{transform:scale(.95)}
+
+/* ── Mode selector ── */
+.section-label{
+  font-size:.72rem;color:var(--sub);
+  text-transform:uppercase;letter-spacing:.1em;
+  margin-bottom:10px;
+}
+.btn-row{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+.mode-btn,.fan-btn{
+  flex:1;min-width:60px;
+  padding:10px 4px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--glass);
+  color:var(--sub);
+  font-size:.78rem;font-weight:500;
+  cursor:pointer;
+  transition:all .25s;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  backdrop-filter:blur(8px);
+}
+.mode-btn .icon{font-size:1.1rem}
+.mode-btn:hover,.fan-btn:hover{background:var(--glass-b);color:var(--text)}
+.mode-btn.active[data-mode="cool"],.fan-btn.active{border-color:var(--cool);color:var(--cool);background:rgba(56,189,248,.1)}
+.mode-btn.active[data-mode="heat"]{border-color:var(--heat);color:var(--heat);background:rgba(251,146,60,.1)}
+.mode-btn.active[data-mode="auto"]{border-color:var(--auto);color:var(--auto);background:rgba(167,139,250,.1)}
+.mode-btn.active[data-mode="dry"]{border-color:var(--dry);color:var(--dry);background:rgba(52,211,153,.1)}
+.mode-btn.active[data-mode="fan"]{border-color:var(--fan);color:var(--fan);background:rgba(148,163,184,.1)}
+
+/* ── Error box ── */
+#error-box{
+  display:none;
+  background:rgba(239,68,68,.12);
+  border:1px solid rgba(239,68,68,.3);
+  border-radius:12px;
+  padding:12px 16px;
+  font-size:.8rem;
+  color:#fca5a5;
+  margin-top:20px;
+  line-height:1.5;
+}
+
+/* ── Reconnect btn ── */
+#reconnect-btn{
+  width:100%;margin-top:12px;padding:12px;
+  border-radius:12px;
+  border:1px solid rgba(56,189,248,.3);
+  background:rgba(56,189,248,.08);
+  color:var(--cool);
+  font-size:.85rem;font-weight:500;
+  cursor:pointer;
+  transition:all .2s;
+  display:none;
+}
+#reconnect-btn:hover{background:rgba(56,189,248,.15)}
+
+/* ── Login Modal ── */
+#login-modal {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+.login-card {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  padding: 32px;
+  border-radius: 24px;
+  width: 90%; max-width: 400px;
+}
+.login-card h2 { margin-bottom: 20px; font-size: 1.4rem; color: #fff; }
+.input-group { margin-bottom: 16px; text-align: left; }
+.input-group label { display: block; font-size: 0.8rem; color: var(--sub); margin-bottom: 6px; }
+.input-group input, .input-group select {
+  width: 100%; padding: 12px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: 8px; color: #fff;
+  font-family: 'Inter', sans-serif;
+}
+.input-group input:focus { outline: none; border-color: var(--cool); }
+#login-btn {
+  width: 100%; padding: 12px; margin-top: 8px;
+  background: var(--cool); color: #000;
+  border: none; border-radius: 8px;
+  font-weight: 600; cursor: pointer;
+}
+#login-btn:hover { background: #7dd3fc; }
+
+/* ── Sending overlay ── */
+.sending{opacity:.6;pointer-events:none}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>AC Freedom Web App</h1>
+  <p>Garvee Mini Split · Cloud API</p>
+  <div id="status-pill">
+    <span id="status-dot"></span>
+    <span id="status-text">Connecting…</span>
+  </div>
+</header>
+
+<div class="card">
+
+  <!-- Power -->
+  <div class="power-wrap">
+    <button id="power-btn" title="Power" onclick="togglePower()">⏻</button>
+  </div>
+
+  <!-- Temperature ring -->
+  <div class="thermo-wrap">
+    <div class="thermo-label">Set Temperature</div>
+    <div class="thermo-ring">
+      <svg width="180" height="180" viewBox="0 0 180 180">
+        <circle class="bg" cx="90" cy="90" r="80"/>
+        <circle id="temp-arc" class="arc" cx="90" cy="90" r="80"/>
+      </svg>
+      <div class="thermo-center">
+        <div class="temp-value" id="temp-display">72</div>
+        <div class="temp-unit">°F</div>
+      </div>
+    </div>
+    <div class="temp-btns">
+      <button class="temp-btn" onclick="changeTemp(-1)">−</button>
+      <button class="temp-btn" onclick="changeTemp(+1)">+</button>
+    </div>
+  </div>
+
+  <!-- Mode -->
+  <div class="section-label">Mode</div>
+  <div class="btn-row" id="mode-row">
+    <button class="mode-btn" data-mode="cool"  onclick="setMode('cool')">  <span class="icon">❄️</span>Cool</button>
+    <button class="mode-btn" data-mode="heat"  onclick="setMode('heat')">  <span class="icon">🔥</span>Heat</button>
+    <button class="mode-btn" data-mode="auto"  onclick="setMode('auto')">  <span class="icon">♻️</span>Auto</button>
+    <button class="mode-btn" data-mode="dry"   onclick="setMode('dry')">   <span class="icon">💧</span>Dry</button>
+    <button class="mode-btn" data-mode="fan"   onclick="setMode('fan')">   <span class="icon">🌀</span>Fan</button>
+  </div>
+
+  <!-- Fan speed -->
+  <div class="section-label">Fan Speed</div>
+  <div class="btn-row" id="fan-row">
+    <button class="fan-btn" data-fan="auto"   onclick="setFan('auto')">Auto</button>
+    <button class="fan-btn" data-fan="mute"   onclick="setFan('mute')">Mute</button>
+    <button class="fan-btn" data-fan="low"    onclick="setFan('low')">Low</button>
+    <button class="fan-btn" data-fan="medium" onclick="setFan('medium')">Med</button>
+    <button class="fan-btn" data-fan="high"   onclick="setFan('high')">High</button>
+    <button class="fan-btn" data-fan="turbo"  onclick="setFan('turbo')">Turbo</button>
+  </div>
+
+  <!-- Features -->
+  <div class="section-label">General</div>
+  <div class="btn-row">
+    <button class="mode-btn feature-btn" data-feat="light"   onclick="toggleFeature('light')">💡 Display</button>
+    <button class="mode-btn feature-btn" data-feat="eco"     onclick="toggleFeature('eco')">🍃 Eco</button>
+    <button class="mode-btn feature-btn" data-feat="sleep"   onclick="toggleFeature('sleep')">🌙 Sleep</button>
+    <button class="mode-btn feature-btn" data-feat="health"  onclick="toggleFeature('health')">✨ Health</button>
+  </div>
+
+  <div class="section-label">Swing</div>
+  <div class="btn-row">
+    <button class="mode-btn feature-btn" data-feat="swing_v" onclick="toggleFeature('swing_v')">↕️ Vertical</button>
+    <button class="mode-btn feature-btn" data-feat="swing_h" onclick="toggleFeature('swing_h')">↔️ Horizontal</button>
+  </div>
+
+  <div id="error-box"></div>
+  <div style="display:flex; gap:10px; margin-top:20px;">
+    <button id="reconnect-btn" onclick="reconnect()" style="flex:1;">↻ Reconnect</button>
+    <button id="settings-btn" onclick="document.getElementById('login-modal').style.display='flex'" style="flex:1;">⚙️ Settings</button>
+  </div>
+</div>
+
+<!-- Login Modal -->
+<div id="login-modal">
+  <div class="login-card">
+    <h2>App Configuration</h2>
+    <p style="font-size:0.8rem;color:var(--sub);margin-bottom:16px;">Configure your Garvee AC connection details.</p>
+    
+    <div class="input-group">
+      <label>Control Mode</label>
+      <select id="login-mode" onchange="toggleMode()">
+        <option value="cloud">Cloud API (AC Freedom)</option>
+        <option value="local">Local Network (Direct)</option>
+      </select>
+    </div>
+
+    <div id="cloud-fields">
+      <div class="input-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="name@example.com" />
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" />
+      </div>
+      <div class="input-group">
+        <label>Region</label>
+        <select id="login-region">
+          <option value="usa">USA / North America</option>
+          <option value="eu">Europe</option>
+          <option value="cn">China</option>
+          <option value="rus">Russia</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>MAC Address (Optional)</label>
+      <input type="text" id="device-id" placeholder="AA:BB:CC:DD:EE:FF" autocomplete="off" />
+    </div>
+
+    <div id="local-fields" style="display:none">
+      <div class="input-group">
+        <label>IP Address</label>
+        <input type="text" id="login-ip" placeholder="192.168.1.74" />
+      </div>
+    </div>
+
+    <div class="input-group" style="flex-direction:row; align-items:center; gap:8px; margin-bottom:16px;">
+      <input type="checkbox" id="login-remember" style="width:auto; margin:0;" />
+      <label for="login-remember" style="margin:0; font-size:0.85rem;">Remember these settings</label>
+    </div>
+
+    <button id="login-btn" onclick="submitLogin()">Save & Connect</button>
+    <button id="google-login-btn" onclick="googleLogin()" style="width:100%; padding:12px; margin-top:12px; background:#fff; color:#444; border:none; border-radius:8px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+      <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Sign in with Google
+    </button>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+const S = { 
+  power:false, mode:'cool', temperature:72, fan:'auto', connected:false, needs_login:true,
+  light:true, eco:false, sleep:false, swing_v:false, swing_h:false, health:false, clean:false
+};
+
+// ── Temp arc math ──────────────────────────────────────────────────────────────
+const TEMP_MIN=61, TEMP_MAX=86, CIRC=2*Math.PI*80;
+function updateArc(temp){
+  const pct=(temp-TEMP_MIN)/(TEMP_MAX-TEMP_MIN);
+  const offset=CIRC*(1-pct);
+  const arc=document.getElementById('temp-arc');
+  arc.style.strokeDashoffset=offset;
+  // colour: cool→heat gradient
+  const r=Math.round(56+(251-56)*pct), g=Math.round(189+(146-189)*pct), b=Math.round(248+(60-248)*pct);
+  arc.style.stroke=`rgb(${r},${g},${b})`;
+  document.getElementById('temp-display').textContent=temp;
+}
+
+// ── UI render ──────────────────────────────────────────────────────────────────
+function render(state){
+  Object.assign(S,state);
+  document.body.classList.toggle('logged-in', state.connected);
+
+  // login modal
+  const modal = document.getElementById('login-modal');
+  if(state.needs_login) {
+    modal.style.display = 'flex';
+  } else {
+    modal.style.display = 'none';
+  }
+
+  // status pill
+  const pill=document.getElementById('status-pill');
+  const txt =document.getElementById('status-text');
+  pill.className=state.connected?'connected':'';
+  txt.textContent=state.connected?'Connected':'Disconnected';
+
+  // power
+  document.getElementById('power-btn').className=state.power?'on':'';
+
+  // temp
+  updateArc(state.temperature);
+
+  // modes
+  document.querySelectorAll('.mode-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mode===state.mode);
+  });
+
+  // fan
+  document.querySelectorAll('.fan-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.fan===state.fan);
+  });
+
+  // features
+  document.querySelectorAll('.feature-btn').forEach(b=>{
+    b.classList.toggle('active', !!state[b.dataset.feat]);
+  });
+
+  // error
+  const errBox = document.getElementById('error-box');
+  if(state.error) {
+    errBox.textContent = state.error;
+    errBox.style.display = 'block';
+  } else {
+    errBox.style.display = 'none';
+  }
+}
+
+// ── API helpers ────────────────────────────────────────────────────────────────
+let suppressPollUntil = 0;
+async function apiStatus(){
+  if(Date.now() < suppressPollUntil) return;
+  try{
+    const r=await fetch('/api/status');
+    const d=await r.json();
+    render(d);
+  }catch(e){console.warn('status poll failed',e)}
+}
+
+async function control(patch){
+  const card=document.querySelector('.card');
+  card.classList.add('sending');
+  suppressPollUntil = Date.now() + 5000; // Don't let polls overwrite local UI for 5s
+  try{
+    const r=await fetch('/api/control',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(patch)
+    });
+    const d=await r.json();
+    render(d.state);
+  }catch(e){console.error(e)}finally{
+    card.classList.remove('sending');
+  }
+}
+
+async function submitLogin(){
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  const region = document.getElementById('login-region').value;
+  const mac = document.getElementById('device-id').value;
+  const ip = document.getElementById('login-ip').value;
+  const mode = document.getElementById('login-mode').value;
+  const remember = document.getElementById('login-remember').checked;
+  
+  document.getElementById('login-btn').textContent = "Connecting...";
+  try {
+    const r = await fetch('/api/cloud/login', {
+      method: 'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, password, region, mac, ip, control_mode: mode, remember})
+    });
+    const d = await r.json();
+    render(d.state);
+  } catch(e) {
+    console.error(e);
+  } finally {
+    document.getElementById('login-btn').textContent = "Save & Connect";
+  }
+}
+
+function toggleMode() {
+  const mode = document.getElementById('login-mode').value;
+  document.getElementById('cloud-fields').style.display = mode === 'cloud' ? 'block' : 'none';
+  document.getElementById('local-fields').style.display = mode === 'local' ? 'block' : 'none';
+  document.getElementById('google-login-btn').style.display = mode === 'cloud' ? 'flex' : 'none';
+}
+
+function googleLogin() {
+  alert("Google Sign-In is not directly supported by this 3rd party integration.\n\nIf you signed up with Google, please open the AC Freedom app, go to Settings -> Account, and set a Password. You can then use your Google Email and the new Password to log in here.");
+}
+
+// ── Controls ───────────────────────────────────────────────────────────────────
+let tempTimer = null;
+function togglePower(){ control({power:!S.power}) }
+function setMode(m){    control({mode:m}) }
+function setFan(f){     control({fan:f}) }
+function toggleFeature(name){
+  const patch={};
+  patch[name]=!S[name];
+  control(patch);
+}
+function changeTemp(d){
+  const t=Math.max(61,Math.min(86,S.temperature+d));
+  if(t===S.temperature)return;
+  S.temperature=t;
+  updateArc(t);              // instant UI feedback
+  
+  clearTimeout(tempTimer);
+  tempTimer = setTimeout(() => {
+    control({temperature:t});
+  }, 1000); // Wait 1 second after last click before sending
+}
+async function reconnect(){
+  document.getElementById('status-text').textContent='Reconnecting…';
+  await fetch('/api/cloud/login',{method:'POST', body:JSON.stringify({})});
+  apiStatus();
+}
+
+// ── Poll ───────────────────────────────────────────────────────────────────────
+apiStatus();
+setInterval(apiStatus,10000);
+</script>
+</body>
+</html>

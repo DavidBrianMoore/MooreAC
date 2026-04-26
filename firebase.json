@@ -1,0 +1,29 @@
+{
+  "hosting": {
+    "public": "static",
+    "ignore": [
+      "firebase.json",
+      "config.json",
+      ".env",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "function": "app"
+      }
+    ]
+  },
+  "functions": [
+    {
+      "source": ".",
+      "runtime": "python311",
+      "codebase": "default",
+      "ignore": [
+        "venv",
+        ".git"
+      ]
+    }
+  ]
+}
